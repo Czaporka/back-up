@@ -1,0 +1,6 @@
+#
+log_file: ~/.logs/back-up.log
+backups_dir: ~/.backups
+to_backup:
+  NAME1: /path/to/some/directory/1
+  NAME2: /path/to/some/directory/2
