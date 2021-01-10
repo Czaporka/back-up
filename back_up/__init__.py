@@ -12,6 +12,7 @@ import yaml
 
 
 DEFAULT_CONFIG_FILE = Path("~/.back-up.yaml").expanduser()
+HASH_CHUNK_SIZE = 65536
 
 
 logger = logging.getLogger(__name__)
@@ -84,14 +85,17 @@ class Info:
 
 
 def _get_hash(path: Path) -> Hash:
+    hash = md5()
     with path.open("rb") as fh:
-        hash = md5()
-        while chunk := fh.read(8192):
+        while True:
+            chunk = fh.read(HASH_CHUNK_SIZE)
+            if not chunk:
+                break
             hash.update(chunk)
     return hash.hexdigest()
 
 
-def parse_args() -> argparse.Namespace:
+def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Utility for backing up directories.")
     parser.add_argument("--backups-dir", help="set the directory to dump the "
@@ -107,7 +111,7 @@ def parse_args() -> argparse.Namespace:
                         "find the thing you want to restore; sample value: "
                         "'DOCUMENTS=~/Documents' (the tilde will be expanded "
                         "appropriately, backups will be dumped under "
-                        "'<backups_dir>/DOCUMENTS/')",
+                        "'<backups_dir>/DOCUMENTS/...')",
                         metavar="NAME=PATH", nargs="+")
     parser.add_argument("--config-file", help=f"where to take config from; "
                         "command line arguments have priority though; "
@@ -116,7 +120,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def set_up_logging(log_file: Optional[Path] = None,
+def _set_up_logging(log_file: Optional[Path] = None,
                    logging_level: Optional[str] = None):
     formatter = logging.Formatter(
         "%(asctime)s %(filename)s:%(lineno)d %(levelname)s %(message)s")
@@ -138,12 +142,12 @@ def set_up_logging(log_file: Optional[Path] = None,
 
 
 def main():
-    args = parse_args()
+    args = _parse_args()
 
     config = Config.from_file(args.config_file)
     config.update(args)
 
-    set_up_logging(config.log_file, config.logging_level)
+    _set_up_logging(config.log_file, config.logging_level)
 
     for item, path in config.to_backup.items():
 
@@ -160,7 +164,7 @@ def main():
             latest_info = Info.from_json_file(info_files[0])
             if latest_info.files == current_hashes:
                 logger.info("> The most recent backup is still up to date!")
-                return
+                continue
 
         logger.info("> Making a backup...")
 
