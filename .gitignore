@@ -1,1 +1,4 @@
 .vscode/
+.env/
+back_up.egg-info/
+__pycache__/
