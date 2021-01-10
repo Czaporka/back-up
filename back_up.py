@@ -1,3 +1,24 @@
+"""Back up directories efficiently.
+
+How it works:
+  1.
+    The script visits each directory specified in the config file or on the
+      command line, then hashes every file under it.
+  2.1.
+    The script compresses the directory and stores the result in the backups
+      folder.
+  2.2.
+    The script also stores the hashes alongside the compressed backup file.
+  3.
+    The next time the script is supposed to back up a directory, it hashes the
+      files again, then compares the results with the hashes from the most
+      recent backup. If the hashes are the same, the script doesn't dump the
+      same file again not to waste disk space. If the hashes differ, a new
+      backup is stored under a new timestamp.
+
+Potential TODO:
+  - Clean up old backups.
+"""
 import argparse
 from dataclasses import dataclass
 from datetime import datetime
@@ -6,17 +27,22 @@ import json
 import logging
 from pathlib import Path
 import shutil
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 import yaml
 
 
-DEFAULT_CONFIG_FILE = Path("~/.back-up.yaml").expanduser()
+DEFAULT_ARCHIVE_FORMAT = "zip"
+DEFAULT_BACKUPS_DIR = "~/.backups"
+DEFAULT_CONFIG_FILE = "~/.config/back-up/back-up.yaml"
+DEFAULT_LOGGING_LEVEL = "INFO"
 HASH_CHUNK_SIZE = 65536
+LOG_FORMAT_FILE = \
+    "%(asctime)s %(filename)s:%(lineno)d %(levelname)s %(message)s"
+LOG_FORMAT_STDERR = "%(filename)s:%(lineno)d %(levelname)s %(message)s"
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 class BackUpException(RuntimeError):
@@ -26,28 +52,61 @@ class BackUpException(RuntimeError):
 Hash = str
 
 
-@dataclass
 class Config:
-    backups_dir: Path
-    to_backup: Dict[str, Path]
-    logging_level: str
-    log_file: Path = None
+    """Parameters controlling the program's execution details."""
 
     def __init__(self,
-                 backups_dir: str,
-                 to_backup: Dict[str, str],
-                 logging_level: Optional[str] = None,
+                 archive_format: str = DEFAULT_ARCHIVE_FORMAT,
+                 backups_dir: str = DEFAULT_BACKUPS_DIR,
+                 to_backup: Dict[str, str] = {},
+                 logging_level: str = DEFAULT_LOGGING_LEVEL,
                  log_file: Optional[str] = None):
-        self.log_file = Path(log_file).expanduser()
-        self.backups_dir = Path(backups_dir).expanduser()
-        self.to_backup = {name: Path(path) for name, path in to_backup.items()}
+        self.archive_format = archive_format
+        self.backups_dir = backups_dir
+        self.log_file = log_file
         self.logging_level = logging_level
+        self.to_backup = to_backup
+
+    def __repr__(self) -> str:
+        kvps = ", ".join(f"{k}={v}" for k, v in vars(self).items())
+        return f"{type(self).__name__}({kvps})"
+
+    @property
+    def to_backup(self) -> Path:
+        return self._to_backup
+
+    @to_backup.setter
+    def to_backup(self, to_backup: Dict[str, str]):
+        self._to_backup = {
+            name: Path(path).expanduser() for name, path in to_backup.items()}
+
+    @property
+    def backups_dir(self) -> Path:
+        return self._backups_dir
+
+    @backups_dir.setter
+    def backups_dir(self, backups_dir: Union[str, Path]):
+        self._backups_dir = Path(backups_dir).expanduser()
+
+    @property
+    def log_file(self) -> Path:
+        return self._log_file
+
+    @log_file.setter
+    def log_file(self, log_file: Optional[Union[str, Path]]):
+        if log_file is None:
+            self._log_file = None
+        else:
+            self._log_file = Path(log_file).expanduser()
 
     @classmethod
-    def from_file(cls, file: Path) -> "Config":
+    def from_file(cls, file: str) -> "Config":
         try:
-            with file.open() as fh:
+            with Path(file).expanduser().open() as fh:
                 return cls(**yaml.safe_load(fh))
+        except FileNotFoundError:
+            logging.warning(f"Config file {file} does not exist.")
+            return cls()
         except Exception:
             msg = f"Could not read config from '{file}'!"
             logger.exception(msg)
@@ -104,6 +163,9 @@ def _parse_args() -> argparse.Namespace:
                         "their own subdirectories in there", metavar="PATH")
     parser.add_argument("--log-file", help="set the file to dump logs to",
                         metavar="PATH")
+    parser.add_argument("--logging-level", help="set logging verbosity",
+                        choices=(
+                            "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"))
     parser.add_argument("--to-backup", help="set the directories to back up; "
                         "PATH is the directory to back up, NAME is an "
                         "arbitrary identifier used to organize the backup "
@@ -115,25 +177,27 @@ def _parse_args() -> argparse.Namespace:
                         metavar="NAME=PATH", nargs="+")
     parser.add_argument("--config-file", help=f"where to take config from; "
                         "command line arguments have priority though; "
-                        f"default: '{DEFAULT_CONFIG_FILE}'.",
+                        f"default: '{DEFAULT_CONFIG_FILE}'",
                         default=DEFAULT_CONFIG_FILE, metavar="PATH")
+    parser.add_argument("--archive-format", help="what format to store the "
+                        f"backups in; default: '{DEFAULT_ARCHIVE_FORMAT}'",
+                        metavar="FORMAT")
     return parser.parse_args()
 
 
 def _set_up_logging(log_file: Optional[Path] = None,
-                   logging_level: Optional[str] = None):
-    formatter = logging.Formatter(
-        "%(asctime)s %(filename)s:%(lineno)d %(levelname)s %(message)s")
+                    logging_level: Optional[str] = None):
+    logger.propagate = False
 
     if log_file is not None:
         log_file.parent.mkdir(exist_ok=True)
         handler_file = logging.FileHandler(log_file)
-        handler_file.setFormatter(formatter)
+        handler_file.setFormatter(logging.Formatter(LOG_FORMAT_FILE))
         handler_file.setLevel(logging.DEBUG)
         logger.addHandler(handler_file)
 
     handler_stderr = logging.StreamHandler()
-    handler_stderr.setFormatter(formatter)
+    handler_stderr.setFormatter(logging.Formatter(LOG_FORMAT_STDERR))
     handler_stderr.setLevel(logging.DEBUG)
     logger.addHandler(handler_stderr)
 
@@ -148,6 +212,13 @@ def main():
     config.update(args)
 
     _set_up_logging(config.log_file, config.logging_level)
+
+    logger.info("Starting a new backing up...")
+    logger.debug("args: %s", args)
+    logger.debug("config: %s", config)
+
+    if not config.to_backup:
+        logger.warning("Nothing to do!")
 
     for item, path in config.to_backup.items():
 

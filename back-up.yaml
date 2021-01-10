@@ -1,23 +1,28 @@
-# ==============================================================
+# ================================================================
 # | This is a sample config file for the `back-up` utility.
 # |
-# | Place a copy of this file under $HOME/.back-up.yaml and edit
-# |   it appropriately if you don't feel like always providing
-# |   all the required parameters on the command line.
-# ==============================================================
+# | Place a copy of it under $HOME/.config/back-up/back-up.yaml
+# |   and edit the 'to_backup' value according to your needs.
+# |
+# | All these values are also settable via command line arguments,
+# |   which take precedence over this configuration file.
+# ================================================================
 
-# where logs will be dumped (apart from the console)
+# what format to store the backups in
+archive_format: zip
+
+# where all the backups should be dumped
+backups_dir: ~/.backups
+
+# where logs should be dumped (apart from the console)
 log_file: ~/.logs/back-up.log
 
 # how verbose the logs should be
-# available options: DEBUG|INFO|WARNING|ERROR|CRITICAL
+# available options are: DEBUG|INFO|WARNING|ERROR|CRITICAL
 # DEBUG is the most verbose
 logging_level: INFO
 
-# where all the backups will be dumped
-backups_dir: ~/.backups
-
-# what directories will be backed up
+# what directories should be backed up
 to_backup:
   NAME1: /path/to/some/directory/1
   NAME2: /path/to/some/directory/2
