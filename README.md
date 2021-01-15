@@ -1,13 +1,13 @@
 # back-up
 
 ## Description
-`back-up` is a utility for backing up files. Whole directories, actually.
+`back-up` is a utility for backing up directories (and their content).
 
 It can be called at fixed intervals but will not waste disk space if the latest backup is already up to date.
 
 ## Installation
 ```bash
-pip install git+https://github.com/Czaporka/back-up@v0.1.0
+pip install https://github.com/Czaporka/back-up/releases/download/v0.1.0/back_up-0.1.0-py3-none-any.whl
 ```
 
 ## Usage

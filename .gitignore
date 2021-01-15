@@ -2,3 +2,5 @@
 .env/
 back_up.egg-info/
 __pycache__/
+dist/
+build/

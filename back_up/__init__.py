@@ -232,7 +232,7 @@ def main():
         info_files = sorted(info_files, key=lambda p: p.stat().st_mtime)
 
         if info_files:
-            latest_info = Info.from_json_file(info_files[0])
+            latest_info = Info.from_json_file(info_files[-1])
             if latest_info.files == current_hashes:
                 logger.info("> The most recent backup is still up to date!")
                 continue
