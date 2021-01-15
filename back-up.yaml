@@ -9,6 +9,7 @@
 # ================================================================
 
 # what format to store the backups in
+# other options that might work: tar|gztar|bztar|xztar
 archive_format: zip
 
 # where all the backups should be dumped

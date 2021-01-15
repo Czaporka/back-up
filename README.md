@@ -3,12 +3,22 @@
 ## Description
 `back-up` is a utility for backing up directories (and their content).
 
-It can be called at fixed intervals but will not waste disk space if the latest backup is already up to date.
+I wrote it on impulse after discovering that my many hours' savegame files had been deleted for unknown reasons 😄
+
+## Features
+- Can be called at fixed intervals but will not waste disk space if the latest backup is already up to date.
+- Is really simple otherwise.
+- Is configured with a YAML configuration file.
 
 ## Installation
 ```bash
-pip install https://github.com/Czaporka/back-up/releases/download/v0.1.0/back_up-0.1.0-py3-none-any.whl
+pip install back-up
 ```
+
+## Configuration
+`back-up` reads the configuration from file `~/.config/back-up/back-up.yaml`. That is where you should specify all the directories you want backed up. See [sample back-up.yaml file](https://github.com/Czaporka/back-up/blob/master/back-up.yaml) for available options.
+
+It is also possible, albeit usually impractical, to specify all the parameters on the command line.
 
 ## Usage
 ```
