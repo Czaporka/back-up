@@ -38,8 +38,8 @@ DEFAULT_CONFIG_FILE = "~/.config/back-up/back-up.yaml"
 DEFAULT_LOGGING_LEVEL = "INFO"
 HASH_CHUNK_SIZE = 65536
 LOG_FORMAT_FILE = \
-    "%(asctime)s %(filename)s:%(lineno)d %(levelname)s %(message)s"
-LOG_FORMAT_STDERR = "%(filename)s:%(lineno)d %(levelname)s %(message)s"
+    "%(asctime)s %(filename)s:%(lineno)d %(levelname)-5s %(message)s"
+LOG_FORMAT_STDERR = "%(filename)s:%(lineno)d %(levelname)-5s %(message)s"
 
 
 logger = logging.getLogger(__name__)
@@ -224,6 +224,7 @@ def main():
 
         logger.info(f"Processing {item}...")
 
+        logger.debug("> Computing hashes...")
         current_hashes = {f: _get_hash(f)
                           for f
                           in path.glob("**/*")
