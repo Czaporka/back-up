@@ -27,7 +27,7 @@ jobs:
           # ===============================================
           # | determine package version based on latest tag
           # -----------------------------------------------
-          if ! VERSION="$(sed 's/-/./' <<< "${DESCRIPTION}" | grep -Po '^\d+\.\d+\.\d+(.\d+)?(?=$|-)')"; then
+          if ! VERSION="$(sed 's/-/./' <<< "${DESCRIPTION}" | grep -Po '^\d+\.\d+\.\d+(.\d+)?(?=$|-)')${{ github.run_id }}"; then
             echo "Error: could not parse version number from \"$(sed 's/-/./' <<< "${DESCRIPTION}")\"."
             exit 1
           fi
