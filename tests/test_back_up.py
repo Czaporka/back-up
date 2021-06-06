@@ -1,6 +1,7 @@
 from argparse import Namespace
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
+from os import linesep
 from os.path import exists, expanduser
 from pathlib import Path
 import subprocess
@@ -103,7 +104,10 @@ class TestMain(unittest.TestCase):
              self.assertRaises(SystemExit):
             main()
 
-        self.assertEqual(buffer.getvalue(), "back-up __OVERWRITE_THIS__\n")
+        output = buffer.getvalue()
+        self.assertTrue(output.endswith(linesep))
+        self.assertEqual(len(output.splitlines()), 1)
+        self.assertEqual(output.split()[0], "back-up")
 
 
 class TestEntrypoint(unittest.TestCase):
