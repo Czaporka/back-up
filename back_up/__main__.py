@@ -1,3 +1,3 @@
-from back_up import main
+from .main import main
 
 main()

@@ -1,0 +1,113 @@
+name: build
+env:
+  app_name: ${{ github.event.repository.name }}
+
+on:
+  create:
+    tags: ["*"]
+
+  pull_request:
+    branches: ["**"]
+
+  push:
+    branches: ["**"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set variables
+        id: set-vars
+        run: |
+          DESCRIPTION="$(git describe --tags)"
+          # ===============================================
+          # | determine package version based on latest tag
+          # -----------------------------------------------
+          if ! VERSION="$(sed 's/-/./' <<< "${DESCRIPTION}" | grep -Po '^\d+\.\d+\.\d+(.\d+)?(?=$|-)')"; then
+            echo "Error: could not parse version number from \"$(sed 's/-/./' <<< "${DESCRIPTION}")\"."
+            exit 1
+          fi
+          # ===============================================
+          # | determine if the tag is on master
+          # -----------------------------------------------
+          IS_MASTER=0
+          if git branch --contains $(git rev-parse ${DESCRIPTION}) | grep -q ' *master$'; then
+            IS_MASTER=1
+          fi
+          # ===============================================
+          # | print debug info
+          # -----------------------------------------------
+          echo "DESCRIPTION: ${DESCRIPTION}"
+          echo "GITHUB_REF : ${GITHUB_REF}"
+          echo "IS_MASTER  : ${IS_MASTER}"
+          echo "VERSION    : ${VERSION}"
+          echo "contains   : $(git branch --contains $(git rev-parse ${DESCRIPTION}))"
+          # ===============================================
+          # | make the variables available for other jobs
+          # -----------------------------------------------
+          echo "::set-output name=VERSION::${VERSION}"
+          echo "::set-output name=IS_MASTER::${IS_MASTER}"
+
+      - name: Set package version based on git tag
+        run: |
+          echo "__version__ = '${{ steps.set-vars.outputs.VERSION }}'" > back_up/_version.py
+          echo "Version: $(cat back_up/_version.py)"
+
+      - name: Create and activate virtual environment
+        run: |
+          python3 -m venv env/
+          source env/bin/activate
+
+      - name: Install dependencies
+        run: pip install --upgrade pip setuptools wheel
+
+      - name: Install the package
+        run: |
+          pip install .
+
+      - name: Install test dependencies
+        run: pip install coverage pycodestyle
+
+      - name: Run tests with coverage and display report
+        run: |
+          coverage run --source back_up/ -m unittest discover tests/
+          coverage report
+
+      - name: Upload coverage data to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Run pycodestyle
+        run: |
+          pycodestyle back_up/ tests/
+
+      - name: Package the application
+        run: python setup.py sdist bdist_wheel
+
+      - name: Upload packages as workflow artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: dist/
+
+      - name: Upload packages to Test PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          repository_url: https://test.pypi.org/legacy/
+          verbose: true
+
+      - name: Upload packages to PyPI
+        if: ${{ startsWith(github.ref, 'refs/tags') && steps.set-vars.outputs.IS_MASTER == 1 }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          verbose: true

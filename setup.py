@@ -1,9 +1,11 @@
 import setuptools
 
+from back_up._version import __version__
+
 
 setuptools.setup(
     name="back-up",
-    version="1.0.0",
+    version=__version__,
     description="Back up directories efficiently.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
@@ -22,5 +24,5 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     python_requires=">=3.7",
     install_requires=open("requirements.txt").read().splitlines(),
-    entry_points={"console_scripts": ["back-up=back_up:main"]},
+    entry_points={"console_scripts": ["back-up=back_up.main:main"]},
 )
