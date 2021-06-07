@@ -31,9 +31,28 @@ class BackUpApp:
             self.logger.debug("> Comparing with latest backup...")
             info_files = (config.backups_dir / item).glob("*.json")
             info_files = sorted(info_files, key=lambda p: p.stat().st_mtime)
-            if info_files:
-                latest_info = Info.from_json_file(info_files[-1])
-                if latest_info.files == current_hashes:
+            if not info_files:
+                self.logger.debug("> There are no previous backups.")
+                diff = dict(
+                    added=frozenset(),
+                    modified=frozenset(),
+                    removed=frozenset(),
+                )
+                previous_version = None
+            else:
+                previous_version = info_files[-1]
+                latest_info = Info.from_json_file(previous_version)
+                latest_files = set(latest_info.files.keys())
+                current_files = set(current_hashes.keys())
+
+                diff = dict(
+                    added=frozenset(current_files - latest_files),
+                    modified=frozenset(
+                        f for f in current_files & latest_files
+                        if current_hashes[f] != latest_info.files[f]),
+                    removed=frozenset(latest_files - current_files),
+                )
+                if not any(diff.values()):
                     self.logger.info(
                         "> The most recent backup is still up to date!")
                     continue
@@ -56,7 +75,8 @@ class BackUpApp:
 
             self.logger.debug(
                 f"-> Storing new backup metadata under {backup}.json...")
-            Info(path, current_hashes).to_json_file(str(backup) + ".json")
+            Info(path, current_hashes,
+                 diff, previous_version).to_json_file(str(backup) + ".json")
 
             self.logger.info("> Done!")
         self.logger.info("Finished!")
