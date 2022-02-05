@@ -1,6 +1,7 @@
 from datetime import datetime
 from hashlib import md5
 import logging
+import os.path
 from pathlib import Path
 import shutil
 
@@ -23,6 +24,10 @@ class BackUpApp:
 
         for item, path in config.to_backup.items():
             self.logger.info(f"Processing {item}...")
+
+            if not os.path.exists(path):
+                self.logger.info("> Source directory does not exist - skipping.")
+                continue
 
             self.logger.debug("> Computing hashes...")
             current_hashes = {
