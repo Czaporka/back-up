@@ -1,5 +1,5 @@
 # back-up
-![https://github.com/Czaporka/back-up/actions](https://github.com/Czaporka/back-up/workflows/build/badge.svg)
+[![build](https://github.com/Czaporka/back-up/actions/workflows/cicd.yml/badge.svg?branch=master)](https://github.com/Czaporka/back-up/actions/workflows/cicd.yml)
 [![codecov](https://codecov.io/gh/Czaporka/back-up/branch/master/graph/badge.svg)](https://codecov.io/gh/Czaporka/back-up)
 
 ## Description
