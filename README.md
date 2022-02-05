@@ -1,5 +1,5 @@
 # back-up
-![https://github.com/Czaporka/back-up/actions](https://github.com/Czaporka/back-up/workflows/build/badge.svg)
+[![build](https://github.com/Czaporka/back-up/actions/workflows/cicd.yml/badge.svg?branch=master)](https://github.com/Czaporka/back-up/actions/workflows/cicd.yml)
 [![codecov](https://codecov.io/gh/Czaporka/back-up/branch/master/graph/badge.svg)](https://codecov.io/gh/Czaporka/back-up)
 
 ## Description
@@ -26,19 +26,25 @@ It is also possible, albeit usually impractical, to specify all the parameters o
 
 ## Usage
 ```
-usage: back-up [-h] [--backups-dir PATH] [--log-file PATH]
+usage: back-up [-h] [--archive-format FORMAT] [--backups-dir PATH]
+               [--config-file PATH] [--log-file PATH]
                [--logging-level {CRITICAL,ERROR,WARNING,INFO,DEBUG}]
-               [--to-backup NAME=PATH [NAME=PATH ...]] [--config-file PATH]
-               [--archive-format FORMAT] [--version] [--verbose] [--quiet]
+               [--to-backup NAME=PATH [NAME=PATH ...]] [--quiet] [--verbose]
+               [--version]
 
-Utility for backing up directories.
+Utility for backing up directories of files.
 
 optional arguments:
   -h, --help            show this help message and exit
+  --archive-format FORMAT
+                        what format to store the backups in; default: 'zip'
   --backups-dir PATH    set the directory to dump the backups to; this is the
-                        'general' backups directory, i.e. specific
-                        directories that you back up will have their own
-                        subdirectories in there
+                        'general' backups directory, i.e. specific directories
+                        that you back up will have their own subdirectories in
+                        there
+  --config-file PATH    where to take config from; command line arguments have
+                        priority though; default: '~/.config/back-up/back-
+                        up.yaml'
   --log-file PATH       set the file to dump logs to
   --logging-level {CRITICAL,ERROR,WARNING,INFO,DEBUG}
                         set logging verbosity
@@ -50,14 +56,9 @@ optional arguments:
                         sample value: 'DOCUMENTS=~/Documents' (the tilde will
                         be expanded appropriately, backups will be dumped
                         under '<backups_dir>/DOCUMENTS/...')
-  --config-file PATH    where to take config from; command line arguments
-                        have priority though; default: '~/.config/back-
-                        up/back-up.yaml'
-  --archive-format FORMAT
-                        what format to store the backups in; default: 'zip'
-  --version, -V         show version and exit
-  --verbose, -v         increase verbosity of console output
   --quiet, -q           decrease verbosity of console output
+  --verbose, -v         increase verbosity of console output
+  --version, -V         show version and exit
 ```
 
 ## Development
